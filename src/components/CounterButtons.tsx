@@ -1,5 +1,9 @@
-import { memo } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRenderCount } from '../utils/useRenderCount';
+
+const LONG_PRESS_DELAY_MS = 400;
+const LONG_PRESS_INTERVAL_MS = 80;
 
 type Props = {
   onIncrement: () => void;
@@ -14,6 +18,25 @@ function CounterButtonsBase({
   onReset,
   decrementDisabled,
 }: Props) {
+  useRenderCount('CounterButtons');
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopRepeat = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  const startRepeatIncrement = useCallback(() => {
+    stopRepeat();
+    onIncrement();
+    intervalRef.current = setInterval(onIncrement, LONG_PRESS_INTERVAL_MS);
+  }, [onIncrement, stopRepeat]);
+
+  useEffect(() => stopRepeat, [stopRepeat]);
+
   return (
     <View style={styles.row}>
       <CounterButton
@@ -31,6 +54,9 @@ function CounterButtonsBase({
       <CounterButton
         label="+"
         onPress={onIncrement}
+        onLongPress={startRepeatIncrement}
+        onPressOut={stopRepeat}
+        delayLongPress={LONG_PRESS_DELAY_MS}
         testID="btn-increment"
       />
     </View>
@@ -40,6 +66,9 @@ function CounterButtonsBase({
 type ButtonProps = {
   label: string;
   onPress: () => void;
+  onLongPress?: () => void;
+  onPressOut?: () => void;
+  delayLongPress?: number;
   disabled?: boolean;
   variant?: 'primary' | 'secondary';
   testID?: string;
@@ -48,6 +77,9 @@ type ButtonProps = {
 function CounterButton({
   label,
   onPress,
+  onLongPress,
+  onPressOut,
+  delayLongPress,
   disabled,
   variant = 'primary',
   testID,
@@ -55,6 +87,9 @@ function CounterButton({
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
+      onPressOut={onPressOut}
+      delayLongPress={delayLongPress}
       disabled={disabled}
       testID={testID}
       style={({ pressed }) => [
