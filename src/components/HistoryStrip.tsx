@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { HistoryEntry } from '../hooks/useCounter';
 
 type Props = {
-  history: number[];
+  history: HistoryEntry[];
 };
 
 function HistoryStripBase({ history }: Props) {
@@ -17,15 +18,19 @@ function HistoryStripBase({ history }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
       >
-        {history.map((v, i) => (
+        {history.map((entry, i) => (
           <View
-            key={`${i}-${v}`}
+            key={entry.id}
             style={[styles.chip, i === 0 && styles.chipCurrent]}
+            accessibilityRole="text"
+            accessibilityLabel={
+              i === 0
+                ? `Current value ${entry.value}`
+                : `Recent value ${entry.value}`
+            }
           >
-            <Text
-              style={[styles.chipText, i === 0 && styles.chipTextCurrent]}
-            >
-              {v}
+            <Text style={[styles.chipText, i === 0 && styles.chipTextCurrent]}>
+              {entry.value}
             </Text>
           </View>
         ))}
