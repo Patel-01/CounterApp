@@ -1,7 +1,5 @@
 #include "Counter.h"
 
-#include <algorithm>
-
 namespace counterapp {
 
 Counter::Counter() {
@@ -9,9 +7,14 @@ Counter::Counter() {
 }
 
 Counter::~Counter() {
+  shutdownTimer();
+}
+
+void Counter::shutdownTimer() {
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    shuttingDown_ = true;
+    if (shuttingDown_.load(std::memory_order_relaxed)) return;
+    shuttingDown_.store(true, std::memory_order_relaxed);
   }
   timerCv_.notify_all();
   if (timerThread_.joinable()) {
@@ -19,13 +22,13 @@ Counter::~Counter() {
   }
 }
 
-int32_t Counter::increment() {
+int64_t Counter::increment() {
   Listener listenerCopy;
-  int32_t newValue;
+  int64_t newValue;
   {
     std::lock_guard<std::mutex> lock(mutex_);
     incrementCount_ += 1;
-    int32_t delta = (incrementCount_ % 5 == 0) ? kFifthBonus : 1;
+    int64_t delta = (incrementCount_ % 5 == 0) ? kFifthBonus : 1;
     value_ += delta;
     timerMode_ = TimerMode::Idle;
     lastInteraction_ = std::chrono::steady_clock::now();
@@ -38,9 +41,9 @@ int32_t Counter::increment() {
   return newValue;
 }
 
-int32_t Counter::decrement() {
+int64_t Counter::decrement() {
   Listener listenerCopy;
-  int32_t newValue;
+  int64_t newValue;
   bool changed;
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -62,48 +65,33 @@ int32_t Counter::decrement() {
 }
 
 void Counter::reset() {
-  Listener listenerCopy;
-  int32_t snapshot;
-  bool fireImmediate = false;
   {
     std::lock_guard<std::mutex> lock(mutex_);
     incrementCount_ = 0;
     lastInteraction_ = std::chrono::steady_clock::now();
     timerEpoch_.fetch_add(1, std::memory_order_relaxed);
-    if (value_ == 0) {
-      timerMode_ = TimerMode::Idle;
-      fireImmediate = false;
-    } else {
-      timerMode_ = TimerMode::GradualReset;
-      fireImmediate = false;
-    }
-    snapshot = value_;
-    listenerCopy = listener_;
+    timerMode_ = (value_ == 0) ? TimerMode::Idle : TimerMode::GradualReset;
   }
   timerCv_.notify_all();
-  // No immediate change to emit — gradual reset will tick the value down.
-  (void)fireImmediate;
-  (void)snapshot;
-  (void)listenerCopy;
+  // Gradual reset ticks the value down via the timer thread; no immediate
+  // emission here.
 }
 
-int32_t Counter::getValue() const {
+int64_t Counter::getValue() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return value_;
 }
 
 void Counter::setListener(Listener listener) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  listener_ = std::move(listener);
-}
-
-void Counter::notify(int32_t value) {
-  Listener listenerCopy;
+  Listener toEmit;
+  int64_t snapshot;
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    listenerCopy = listener_;
+    listener_ = std::move(listener);
+    toEmit = listener_;
+    snapshot = value_;
   }
-  if (listenerCopy) listenerCopy(value);
+  if (toEmit) toEmit(snapshot);
 }
 
 void Counter::timerLoop() {
@@ -152,7 +140,7 @@ void Counter::timerLoop() {
       if (value_ > 0) {
         value_ -= 1;
         if (value_ == 0) timerMode_ = TimerMode::Idle;
-        int32_t toEmit = value_;
+        int64_t toEmit = value_;
         Listener listenerCopy = listener_;
         lock.unlock();
         if (listenerCopy) listenerCopy(toEmit);
@@ -166,7 +154,7 @@ void Counter::timerLoop() {
           now - lastInteraction_);
       if (sinceLast >= kIdleDelay && value_ > 0) {
         value_ -= 1;
-        int32_t toEmit = value_;
+        int64_t toEmit = value_;
         Listener listenerCopy = listener_;
         lock.unlock();
         if (listenerCopy) listenerCopy(toEmit);
