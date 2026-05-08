@@ -1,4 +1,26 @@
 PODS:
+  - CounterShared (0.0.1):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - FBLazyVector (0.85.3)
   - hermes-engine (250829098.0.10):
     - hermes-engine/Pre-built (= 250829098.0.10)
@@ -1859,6 +1881,7 @@ PODS:
   - Yoga (0.0.0)
 
 DEPENDENCIES:
+  - CounterShared (from `../shared`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
@@ -1937,6 +1960,8 @@ DEPENDENCIES:
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 EXTERNAL SOURCES:
+  CounterShared:
+    :path: "../shared"
   FBLazyVector:
     :path: "../node_modules/react-native/Libraries/FBLazyVector"
   hermes-engine:
@@ -2090,6 +2115,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  CounterShared: 254bf8383ed83b02f4f5117abf1140d534262693
   FBLazyVector: 24e62c765683b8d89006a88a2c8f5cf019f0074d
   hermes-engine: 95112a256521c85957524660aad126a42e8778c0
   RCTDeprecation: a4c521821fab57cbb125b36effe84d897d0dfa12
@@ -2161,11 +2187,11 @@ SPEC CHECKSUMS:
   React-utils: 2851415c698da4b18331f9a445825d260fffa32c
   React-webperformancenativemodule: 9f29ed34f6f6c01dac688b95fd2dfcbccf3aed7a
   ReactAppDependencyProvider: a54c0c9b976766e1b6d5e2bb4d1ad0d15913e9e1
-  ReactCodegen: 9af5798e943781fd2318dab7b60f25337388047c
+  ReactCodegen: 3d52b29bc50613617623c7acaecaa3834b36841e
   ReactCommon: 3ec2a55999d296af90c24beb66c8a77dc660d3ef
   ReactNativeDependencies: b308028b1ca729f4d8b1127fa7bd6302babb1ded
   Yoga: 36fee8f1fca3f54a28c3d7f80e69f66d73d3af96
 
-PODFILE CHECKSUM: 878e7cbd06dc5c04089021850a38243ab71c21ea
+PODFILE CHECKSUM: 03edb24b651a8fcd3b8bb2417e7ba4003ce8248a
 
 COCOAPODS: 1.15.2
