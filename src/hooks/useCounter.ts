@@ -95,9 +95,13 @@ export function useCounter(): CounterApi {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
   const [interactionTick, bumpInteraction] = useReducer(interactionReducer, 0);
 
-  const increment = useCallback((amount = 1) => {
+  const increment = useCallback((amount?: number) => {
     bumpInteraction();
-    dispatch({ type: 'INCREMENT', amount });
+    const burst =
+      typeof amount === 'number' && Number.isFinite(amount) && amount > 0
+        ? Math.floor(amount)
+        : 1;
+    dispatch({ type: 'INCREMENT', amount: burst });
   }, []);
 
   const decrement = useCallback(() => {
