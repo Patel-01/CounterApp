@@ -18,18 +18,21 @@ function CounterButtonsBase({
     <View style={styles.row}>
       <CounterButton
         label="−"
+        accessibilityLabel="Decrement counter"
         onPress={onDecrement}
         disabled={decrementDisabled}
         testID="btn-decrement"
       />
       <CounterButton
         label="Reset"
+        accessibilityLabel="Reset counter to zero"
         onPress={onReset}
         variant="secondary"
         testID="btn-reset"
       />
       <CounterButton
         label="+"
+        accessibilityLabel="Increment counter"
         onPress={onIncrement}
         testID="btn-increment"
       />
@@ -39,6 +42,7 @@ function CounterButtonsBase({
 
 type ButtonProps = {
   label: string;
+  accessibilityLabel: string;
   onPress: () => void;
   disabled?: boolean;
   variant?: 'primary' | 'secondary';
@@ -47,6 +51,7 @@ type ButtonProps = {
 
 function CounterButton({
   label,
+  accessibilityLabel,
   onPress,
   disabled,
   variant = 'primary',
@@ -57,13 +62,15 @@ function CounterButton({
       onPress={onPress}
       disabled={disabled}
       testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => [
         styles.button,
         variant === 'secondary' && styles.buttonSecondary,
         disabled && styles.buttonDisabled,
         pressed && !disabled && styles.buttonPressed,
       ]}
-      accessibilityRole="button"
     >
       <Text
         style={[

@@ -1,61 +1,46 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 
 export const IDLE_MS = 4000;
 export const AUTO_DECREMENT_INTERVAL_MS = 1000;
 export const GRADUAL_RESET_TICK_MS = 60;
-export const HISTORY_LIMIT = 10;
 export const FIFTH_INCREMENT_BONUS = 5;
 
 export type CounterState = {
   value: number;
   incrementCount: number;
   isResetting: boolean;
-  history: number[];
 };
 
-type Action =
-  | { type: 'INCREMENT'; amount?: number }
+export type CounterAction =
+  | { type: 'INCREMENT'; amount: number }
   | { type: 'DECREMENT' }
   | { type: 'RESET_START' }
   | { type: 'TICK_DOWN' };
 
-const INITIAL_STATE: CounterState = {
+export const INITIAL_STATE: CounterState = {
   value: 0,
   incrementCount: 0,
   isResetting: false,
-  history: [0],
 };
 
-const pushHistory = (history: number[], value: number): number[] => {
-  if (history[0] === value) return history;
-  const next = [value, ...history];
-  return next.length > HISTORY_LIMIT ? next.slice(0, HISTORY_LIMIT) : next;
-};
-
-const reducer = (state: CounterState, action: Action): CounterState => {
+export const counterReducer = (
+  state: CounterState,
+  action: CounterAction,
+): CounterState => {
   switch (action.type) {
     case 'INCREMENT': {
-      const bursts = action.amount ?? 1;
-      let { value, incrementCount, history } = state;
-      for (let i = 0; i < bursts; i += 1) {
+      let { value, incrementCount } = state;
+      for (let i = 0; i < action.amount; i += 1) {
         incrementCount += 1;
-        const delta = incrementCount % 5 === 0 ? FIFTH_INCREMENT_BONUS : 1;
-        value += delta;
-        history = pushHistory(history, value);
+        value += incrementCount % 5 === 0 ? FIFTH_INCREMENT_BONUS : 1;
       }
-      return { value, incrementCount, isResetting: false, history };
+      return { value, incrementCount, isResetting: false };
     }
     case 'DECREMENT': {
       if (state.value === 0) {
         return state.isResetting ? { ...state, isResetting: false } : state;
       }
-      const value = state.value - 1;
-      return {
-        ...state,
-        value,
-        isResetting: false,
-        history: pushHistory(state.history, value),
-      };
+      return { ...state, value: state.value - 1, isResetting: false };
     }
     case 'RESET_START': {
       if (state.value === 0) {
@@ -70,12 +55,7 @@ const reducer = (state: CounterState, action: Action): CounterState => {
         return state.isResetting ? { ...state, isResetting: false } : state;
       }
       const value = state.value - 1;
-      return {
-        ...state,
-        value,
-        isResetting: state.isResetting && value > 0,
-        history: pushHistory(state.history, value),
-      };
+      return { ...state, value, isResetting: state.isResetting && value > 0 };
     }
     default:
       return state;
@@ -89,16 +69,15 @@ export type CounterApi = {
   reset: () => void;
 };
 
-const interactionReducer = (n: number): number => n + 1;
-
 export function useCounter(): CounterApi {
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const [interactionTick, bumpInteraction] = useReducer(interactionReducer, 0);
+  const [state, dispatch] = useReducer(counterReducer, INITIAL_STATE);
+  // interactionTick re-keys the idle effect on every user action without
+  // changing handler identity. setState's identity is stable, so callbacks
+  // can declare empty deps.
+  const [interactionTick, setInteractionTick] = useState(0);
 
   const increment = useCallback((amount?: number) => {
-    bumpInteraction();
-    // amount may arrive as a GestureResponderEvent when wired directly to
-    // Pressable.onPress. Coerce anything non-numeric to a single tick.
+    setInteractionTick(n => n + 1);
     const burst =
       typeof amount === 'number' && Number.isFinite(amount) && amount > 0
         ? Math.floor(amount)
@@ -107,38 +86,35 @@ export function useCounter(): CounterApi {
   }, []);
 
   const decrement = useCallback(() => {
-    bumpInteraction();
+    setInteractionTick(n => n + 1);
     dispatch({ type: 'DECREMENT' });
   }, []);
 
   const reset = useCallback(() => {
-    bumpInteraction();
+    setInteractionTick(n => n + 1);
     dispatch({ type: 'RESET_START' });
   }, []);
 
   const valueAtZero = state.value === 0;
 
-  // Gradual reset: tick down every GRADUAL_RESET_TICK_MS until value hits 0
-  // or another interaction cancels the reset.
   useEffect(() => {
     if (!state.isResetting || valueAtZero) return;
-    const id = setInterval(() => {
-      dispatch({ type: 'TICK_DOWN' });
-    }, GRADUAL_RESET_TICK_MS);
+    const id = setInterval(
+      () => dispatch({ type: 'TICK_DOWN' }),
+      GRADUAL_RESET_TICK_MS,
+    );
     return () => clearInterval(id);
   }, [state.isResetting, valueAtZero]);
 
-  // Idle auto-decrement. Wait IDLE_MS after the last interaction, then tick
-  // down every AUTO_DECREMENT_INTERVAL_MS until interaction, reset, or zero.
-  // Restarts whenever the user interacts (interactionTick changes).
   useEffect(() => {
     if (valueAtZero || state.isResetting) return;
     let interval: ReturnType<typeof setInterval> | undefined;
     const timeout = setTimeout(() => {
       dispatch({ type: 'TICK_DOWN' });
-      interval = setInterval(() => {
-        dispatch({ type: 'TICK_DOWN' });
-      }, AUTO_DECREMENT_INTERVAL_MS);
+      interval = setInterval(
+        () => dispatch({ type: 'TICK_DOWN' }),
+        AUTO_DECREMENT_INTERVAL_MS,
+      );
     }, IDLE_MS);
     return () => {
       clearTimeout(timeout);
