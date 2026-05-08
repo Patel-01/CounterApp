@@ -32,27 +32,35 @@ function CounterButtonsBase({
   const startRepeatIncrement = useCallback(() => {
     stopRepeat();
     onIncrement();
-    intervalRef.current = setInterval(onIncrement, LONG_PRESS_INTERVAL_MS);
+    intervalRef.current = setInterval(
+      () => onIncrement(),
+      LONG_PRESS_INTERVAL_MS,
+    );
   }, [onIncrement, stopRepeat]);
 
-  useEffect(() => stopRepeat, [stopRepeat]);
+  // Belt-and-suspenders unmount cleanup. onPressOut covers the typical case;
+  // this catches the rare unmount-mid-press path.
+  useEffect(() => () => stopRepeat(), [stopRepeat]);
 
   return (
     <View style={styles.row}>
       <CounterButton
         label="−"
+        accessibilityLabel="Decrement counter"
         onPress={onDecrement}
         disabled={decrementDisabled}
         testID="btn-decrement"
       />
       <CounterButton
         label="Reset"
+        accessibilityLabel="Reset counter to zero"
         onPress={onReset}
         variant="secondary"
         testID="btn-reset"
       />
       <CounterButton
         label="+"
+        accessibilityLabel="Increment counter (long-press to repeat)"
         onPress={onIncrement}
         onLongPress={startRepeatIncrement}
         onPressOut={stopRepeat}
@@ -65,6 +73,7 @@ function CounterButtonsBase({
 
 type ButtonProps = {
   label: string;
+  accessibilityLabel: string;
   onPress: () => void;
   onLongPress?: () => void;
   onPressOut?: () => void;
@@ -76,6 +85,7 @@ type ButtonProps = {
 
 function CounterButton({
   label,
+  accessibilityLabel,
   onPress,
   onLongPress,
   onPressOut,
@@ -92,13 +102,15 @@ function CounterButton({
       delayLongPress={delayLongPress}
       disabled={disabled}
       testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => [
         styles.button,
         variant === 'secondary' && styles.buttonSecondary,
         disabled && styles.buttonDisabled,
         pressed && !disabled && styles.buttonPressed,
       ]}
-      accessibilityRole="button"
     >
       <Text
         style={[
