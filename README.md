@@ -2,6 +2,8 @@
 
 React Native counter assignment — single-screen counter with non-trivial behaviors, plus a C++ TurboModule re-implementation of the same logic over JSI.
 
+**Demo video:** <https://youtu.be/xpvnxcC-Gi8>
+
 > **For reviewers:** the work is split across three stacked PRs against a `review-base` branch (the bare React Native bootstrap). Each PR maps to a section of the assignment so you can review one slice at a time. All three are open, mergeable, and tested.
 
 ## Branch / PR → assignment map
